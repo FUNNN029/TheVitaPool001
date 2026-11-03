@@ -78,34 +78,24 @@ noscript{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justi
   var frame = document.getElementById('app');
   var loader = document.getElementById('loader');
   var hint = document.getElementById('hint');
-  var done = false;
-  var loaded = false;
+  var done = false, loaded = false, minDone = false;
+  var MIN_MS = 1000;   // แสดงหน้าโหลดอย่างน้อยประมาณ 1 วินาที
 
   function finish() {
     if (done) return;
     done = true;
-    setTimeout(function () {
-      frame.classList.add('ready');
-      loader.classList.add('hide');
-      setTimeout(function () { loader.style.display = 'none'; }, 600);
-    }, 150);
+    frame.classList.add('ready');
+    loader.classList.add('hide');
+    setTimeout(function () { loader.style.display = 'none'; }, 600);
   }
+  function tryFinish() { if (loaded && minDone) finish(); }
 
-  // iframe โหลดเสร็จแล้ว แต่แอปข้างในยังโหลดข้อมูลอยู่ -> รอสัญญาณ "พร้อม" จากแอป
-  frame.addEventListener('load', function () {
-    loaded = true;
-    // ถ้าแอปไม่ส่งสัญญาณ (ยังไม่ได้เพิ่มโค้ด) รอไม่เกิน 1 วินาทีแล้วแสดงเลย
-    setTimeout(finish, 1000);
-  });
+  frame.addEventListener('load', function () { loaded = true; tryFinish(); });
+  setTimeout(function () { minDone = true; tryFinish(); }, MIN_MS);
 
-  // รับสัญญาณจากแอปใน Apps Script (ส่งมาตอนหน้าโหลดของแอปหายไป)
-  window.addEventListener('message', function (e) {
-    if (e.data === 'vita-ready') finish();
-  });
-
-  // ส่งพารามิเตอร์ใน URL ของเรา (เช่น ?page=x) ต่อให้ Apps Script
+  // ส่ง embed=1 ให้แอปรู้ว่าอยู่ใน wrapper (แอปจะไม่แสดงหน้าโหลดของตัวเองซ้ำ)
   var q = window.location.search || '';
-  frame.src = URL_ + q;
+  frame.src = URL_ + (q ? q + '&embed=1' : '?embed=1');
 
   setTimeout(function () {
     if (!done) hint.textContent = 'กำลังเชื่อมต่อ ใช้เวลาสักครู่…';
