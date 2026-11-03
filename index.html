@@ -74,30 +74,39 @@ noscript{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justi
   var loader = document.getElementById('loader');
   var hint = document.getElementById('hint');
   var done = false;
+  var loaded = false;
 
   function finish() {
     if (done) return;
     done = true;
-    // รอสั้น ๆ ให้หน้าใน Apps Script วาดเสร็จก่อน แล้วค่อย fade
     setTimeout(function () {
       frame.classList.add('ready');
       loader.classList.add('hide');
       setTimeout(function () { loader.style.display = 'none'; }, 600);
-    }, 350);
+    }, 150);
   }
 
-  frame.addEventListener('load', finish);
+  // iframe โหลดเสร็จแล้ว แต่แอปข้างในยังโหลดข้อมูลอยู่ -> รอสัญญาณ "พร้อม" จากแอป
+  frame.addEventListener('load', function () {
+    loaded = true;
+    // ถ้าแอปไม่ส่งสัญญาณ (ยังไม่ได้เพิ่มโค้ด) รอไม่เกิน 8 วินาทีแล้วแสดงเลย
+    setTimeout(finish, 8000);
+  });
+
+  // รับสัญญาณจากแอปใน Apps Script (ส่งมาตอนหน้าโหลดของแอปหายไป)
+  window.addEventListener('message', function (e) {
+    if (e.data === 'vita-ready') finish();
+  });
 
   // ส่งพารามิเตอร์ใน URL ของเรา (เช่น ?page=x) ต่อให้ Apps Script
   var q = window.location.search || '';
   frame.src = URL_ + q;
 
-  // เน็ตช้า: แจ้งผู้ใช้
   setTimeout(function () {
     if (!done) hint.textContent = 'กำลังเชื่อมต่อ ใช้เวลาสักครู่…';
   }, 6000);
 
-  // กันค้าง: ถ้าเกิน 20 วินาทีให้เอา loading ออกอยู่ดี
+  // กันค้าง
   setTimeout(finish, 20000);
 })();
 </script>
